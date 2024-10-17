@@ -1,0 +1,166 @@
+// Declaração de constantes para todos os pinos de entrada
+const byte R4_Button = 5;
+const byte L4_Button = 6;
+const byte Mod_Select_Up = 12;
+const byte Mod_Select_Down = 13;
+const byte R2_Trigger = 7;
+
+// Declaração de constantes para todos os pinos de saída
+const byte R2_Out = 10;
+const byte L2_Out = 11;
+const byte LB_Button = 0;
+const byte RB_Button = 3;
+const byte X_Button = 2;
+const byte Y_Button = 1;
+const byte A_Button = 9;
+const byte B_Button = 8;
+const byte RD_Stick = A4;
+const byte LD_Stick = A5;
+const byte LS_Button = 4;
+
+// Declaração de constantes para os LEDs de indicação de modo
+const byte led0 = A0;
+const byte led1 = A1;
+const byte led2 = A2;
+const byte led3 = A3;
+
+// Variáveis globais
+byte modphase = 1;
+byte estadoBotaoUp, estadoBotaoDown;
+byte estadoAnteriorBotaoUp, estadoAnteriorBotaoDown;
+byte val1;
+boolean x = false;
+
+unsigned long delay1 = 0;
+unsigned long delay2 = 500;
+unsigned long delay3 = 0;
+
+// Configurações iniciais
+void setup() {
+  pinMode(R2_Trigger, INPUT);
+  pinMode(Mod_Select_Up, INPUT);
+  pinMode(Mod_Select_Down, INPUT);
+  pinMode(R4_Button, INPUT);
+  pinMode(L4_Button, INPUT);
+
+  pinMode(R2_Out, OUTPUT);
+  pinMode(L2_Out, OUTPUT);
+  pinMode(LB_Button, OUTPUT);
+  pinMode(RB_Button, OUTPUT);
+  pinMode(X_Button, OUTPUT);
+  pinMode(Y_Button, OUTPUT);
+  pinMode(A_Button, OUTPUT);
+  pinMode(B_Button, OUTPUT);
+  pinMode(RD_Stick, OUTPUT);
+  pinMode(LD_Stick, OUTPUT);
+  pinMode(LS_Button, OUTPUT);
+  
+  estadoAnteriorBotaoUp = digitalRead(Mod_Select_Up);
+  estadoAnteriorBotaoDown = digitalRead(Mod_Select_Down);
+}
+
+// Loop principal
+void loop() {
+  atualizaModPhase();
+  atualizaLEDs(modphase);
+  executaModos(modphase);
+}
+
+// Função para atualizar o modo baseado nos botões de seleção
+void atualizaModPhase() {
+  estadoBotaoUp = digitalRead(Mod_Select_Up);
+  estadoBotaoDown = digitalRead(Mod_Select_Down);
+
+  if (estadoBotaoUp == HIGH && estadoAnteriorBotaoUp == LOW) {
+    modphase = (modphase < 15) ? modphase + 1 : 0;
+    delay(10);
+  }
+  estadoAnteriorBotaoUp = estadoBotaoUp;
+
+  if (estadoBotaoDown == HIGH && estadoAnteriorBotaoDown == LOW) {
+    modphase = (modphase > 1) ? modphase - 1 : 16;
+    delay(10);
+  }
+  estadoAnteriorBotaoDown = estadoBotaoDown;
+}
+
+// Função para atualizar os LEDs de acordo com o modo
+void atualizaLEDs(byte fase) {
+  digitalWrite(led0, fase & 0b0001);
+  digitalWrite(led1, fase & 0b0010);
+  digitalWrite(led2, fase & 0b0100);
+  digitalWrite(led3, fase & 0b1000);
+}
+
+// Função principal para a execução dos modos
+void executaModos(byte fase) {
+  val1 = digitalRead(R2_Trigger);
+  
+  switch (fase) {
+    case 1:
+      // Modo 1: Configurações específicas do Modo 1
+      digitalWrite(LB_Button, LOW);
+      controlaBotao(R2_Out, R2_Trigger, 60);
+      controlaBotao(B_Button, L4_Button, 0);
+      controlaBotao(A_Button, R4_Button, 0);
+      break;
+
+    case 2:
+      // Modo 2: Controle simples de Rapid Fire
+      controlaBotao(R2_Out, R2_Trigger, 40);
+      break;
+
+    case 3:
+      // Modo 3: Pulo constante com Rapid Fire
+      puloConstante();
+      break;
+
+    // Adicione outros casos para cada modo
+    // Use funções auxiliares para cada lógica específica
+    
+    case 15:
+      // Modo 15: Exemplo de movimento e atirador
+      movimentoEDisparo();
+      break;
+
+    default:
+      break;
+  }
+}
+
+// Função para controlar um botão com delay
+void controlaBotao(byte pinoOut, byte pinoIn, int delayTime) {
+  if (digitalRead(pinoIn) == HIGH) {
+    digitalWrite(pinoOut, LOW);
+    delay(delayTime);
+    digitalWrite(pinoOut, HIGH);
+    delay(delayTime);
+  }
+}
+
+// Função para movimentos repetitivos de "pulo"
+void puloConstante() {
+  unsigned long m = millis();
+  if ((m - delay1) <= 500) {
+    digitalWrite(A_Button, HIGH);
+  } else {
+    digitalWrite(A_Button, LOW);
+  }
+  delay1 = m;
+}
+
+// Função para movimento e tiro no modo 15
+void movimentoEDisparo() {
+  unsigned long m = millis();
+  if ((m - delay1) <= 1000) digitalWrite(RD_Stick, HIGH);
+  else digitalWrite(RD_Stick, LOW);
+
+  if ((m - delay2) >= 500) digitalWrite(LD_Stick, HIGH);
+  else digitalWrite(LD_Stick, LOW);
+
+  controlaBotao(R2_Out, R2_Trigger, 40);
+
+  delay1 = (m - delay1) >= 2000 ? m : delay1;
+  delay2 = (m - delay2) >= 1000 ? m : delay2;
+}
+
